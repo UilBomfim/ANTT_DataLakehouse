@@ -1,0 +1,11 @@
+# Artefatos locais (amostras, logs, saidas temporarias)
+data/
+
+# Temporarios genericos
+*.tmp
+*.log
+
+# SO / editor
+Thumbs.db
+.DS_Store
+.vscode/

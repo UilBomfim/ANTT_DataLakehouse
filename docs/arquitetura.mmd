@@ -1,0 +1,119 @@
+flowchart LR
+  subgraph SRC["Portal de Dados Abertos ANTT - CKAN"]
+    A1["Monitriip Fretado - Viagens"]
+    A2["Monitriip Fretado - Paradas"]
+    A3["Monitriip Bilhetes de Passagem<br/>agregado, sem CNPJ"]
+    A4["Empresas Habilitadas<br/>Fretamento e Regular"]
+    A5["Licencas Fretamento Continuo"]
+    A6["SISAUT - Eventual e Turistico<br/>1 linha por trecho"]
+  end
+
+  subgraph ING["Ingestao - 02_ingest_download"]
+    I1["CKAN package_show<br/>filtra CSV mensal da janela de 12 meses"]
+    I2["Download idempotente com retentativa<br/>manifesto de arquivos<br/>meses ausentes registrados"]
+  end
+
+  subgraph UC["Unity Catalog - catalogo workspace"]
+    V[("Volume antt_raw.landing<br/>CSV originais")]
+
+    subgraph B["antt_bronze - 03_bronze"]
+      B1["6 tabelas bronze, tudo string<br/>codificacao detectada por arquivo<br/>recarga de arquivo republicado"]
+    end
+
+    subgraph S["antt_silver - 04_silver_*"]
+      SC["cobertura_fonte_mes<br/>ok / ausente / parcial"]
+      SE["empresa e empresa_historico"]
+      SL["licenca e licenca_trecho<br/>destino principal, CPF mascarado,<br/>texto SISAUT reparado"]
+      SV["viagem_fretado"]
+      SP["parada_fretado"]
+      SB["bilhete_agregado"]
+      SQ["quarentena_viagem_fretado<br/>quarentena_parada_fretado"]
+      SD["dq_resultados<br/>47 regras"]
+    end
+
+    subgraph G["antt_gold - 05_gold_* e 06_gold_indicadores"]
+      subgraph GD["Dimensoes"]
+        D1["dim_empresa"]
+        D2["dim_localidade"]
+        D3["dim_data"]
+        D4["dim_cobertura"]
+      end
+      subgraph GF["Fatos"]
+        F1["fato_viagem"]
+        F2["fato_licenca"]
+        F3["fato_bilhete<br/>status_mes_viagem"]
+      end
+      subgraph GA["Indicadores - 6 perguntas"]
+        K1["agg_viagens_periodo"]
+        K2["agg_ranking_empresas"]
+        K3["agg_origem_destino"]
+        K4["agg_duracao_media"]
+        K5["agg_qualidade_registros"]
+        K6["agg_evolucao_mensal_volume"]
+        K7["cobertura_fonte_mes"]
+      end
+    end
+  end
+
+  SRC --> I1 --> I2 --> V
+  V --> B1
+
+  B1 --> SC
+  B1 --> SE
+  B1 --> SL
+  B1 --> SV
+  B1 --> SP
+  B1 --> SB
+  B1 -. "registros reprovados" .-> SQ
+
+  SC -- "status do mes" --> SP
+  SE -- "cnpj habilitado" --> SV
+  SL -- "licenca_id = autorizacao_viagem<br/>origem, destino, passageiros" --> SV
+  SV -- "codigo_viagem" --> SP
+  SQ --> SD
+  SV --> SD
+  SP --> SD
+  SB --> SD
+  SL --> SD
+
+  SE --> D1
+  SL --> D2
+  SB --> D2
+  SC --> D4
+  SV --> F1
+  SP -- "qtd_paradas confiaveis" --> F1
+  SL --> F2
+  SB --> F3
+
+  D1 --> F1
+  D2 --> F1
+  D2 --> F2
+  D2 --> F3
+  D3 --> F1
+
+  F1 --> K1
+  F2 --> K1
+  F1 --> K2
+  F1 --> K3
+  F2 --> K3
+  F3 --> K3
+  F1 --> K4
+  F1 --> K6
+  F2 --> K6
+  F3 --> K6
+  SD --> K5
+  SQ --> K5
+  D4 -- "status_cobertura em todo indicador mensal" --> K1
+  D4 --> K4
+  D4 --> K6
+  D4 --> K7
+
+  K1 --> OUT["08_analise.sql<br/>Dashboard SQL e Genie"]
+  K2 --> OUT
+  K3 --> OUT
+  K4 --> OUT
+  K5 --> OUT
+  K6 --> OUT
+  K7 --> OUT
+
+  JOB[["Job do Databricks:<br/>setup, ingestao, bronze, silver, gold, verificacoes"]] -. orquestra .-> ING
