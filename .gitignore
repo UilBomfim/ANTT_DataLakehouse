@@ -5,8 +5,8 @@ data/
 *.tmp
 *.log
 
-# Scripts auxiliares temporarios
-scripts/_*.ps1
+# Scripts auxiliares temporarios de push (nao versionar)
+scripts/_push*.ps1
 
 # SO / editor
 Thumbs.db

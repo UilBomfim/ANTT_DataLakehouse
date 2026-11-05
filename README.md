@@ -32,11 +32,47 @@ Todos aceitam os parâmetros `catalog` (padrão `workspace`), `data_inicio` (`20
 
 Verificações e diagnósticos: `95_verificacao_gold`, `95_verificacao_gold_agg`, `95_verificacao_consultas`, `96_teste_b1`, `97_diag_periodos`, `98_diag_sisaut`, `99_verificacao_bronze`. O `00_probe_fontes_antt` testa o acesso ao portal e levanta o perfil dos arquivos.
 
+## Importar os notebooks e criar o Job (do zero)
+
+Passo a passo reproduzível em qualquer máquina Windows. Os scripts descobrem sozinhos o seu usuário e a pasta no workspace — você não precisa editar nada.
+
+**Pré-requisitos**
+
+1. Uma conta Databricks (a **Free Edition** serve).
+2. A **Databricks CLI** instalada. Veja [docs.databricks.com/dev-tools/cli/install](https://docs.databricks.com/dev-tools/cli/install.html). Os scripts procuram `databricks` no `PATH` e, se não achar, caem para `%LOCALAPPDATA%\databricks-cli\databricks.exe`.
+3. Autenticação: `databricks auth login --profile antt`. O perfil pode ter outro nome; todos os scripts aceitam `-Perfil <nome>` (padrão `antt`).
+
+**Passo 1 — importar os notebooks**
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\importar_notebooks.ps1
+```
+
+Descobre o usuário logado (`databricks current-user me`), cria a pasta `/Users/<seu-usuario>/antt-lakehouse` automaticamente e importa todos os notebooks de `notebooks/`. Log em `data\_importar.txt`.
+
+**Passo 2 — criar o Job**
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\criar_job.ps1
+```
+
+É idempotente (procura pelo nome e faz `jobs reset` se já existir; senão `jobs create`). Substitui o placeholder `__WS_BASE__` da definição pelo caminho `/Users/<seu-usuario>/antt-lakehouse` em tempo de execução — o arquivo versionado não muda. Ao final imprime o **`job_id`**, que é específico da sua conta.
+
+**Passo 3 — rodar uma vez, fora da agenda**
+
+```powershell
+databricks jobs run-now <job_id> --profile antt
+```
+
+Use o `job_id` impresso pelo `criar_job.ps1` no passo 2 (o número `193583361732032` que aparece neste README é do ambiente do autor e será diferente na sua conta).
+
+O **agendamento mensal já vem UNPAUSED** na definição (dia 5 às 06:00, `America/Sao_Paulo`): não é preciso ativar nada.
+
 ## Como rodar
 
 **No Databricks:** importe a pasta `notebooks/` no workspace (Workspace → Import), conecte ao compute serverless e execute na ordem acima.
 
-**Pela linha de comando (Windows):** com a Databricks CLI instalada e autenticada (`databricks auth login --profile antt`), os scripts em `scripts/` importam e executam um notebook:
+**Pela linha de comando (Windows):** com a Databricks CLI instalada e autenticada (`databricks auth login --profile antt`), os scripts em `scripts/` importam e executam um notebook. Todos aceitam `-Perfil <nome>` (padrão `antt`) e descobrem o usuário logado automaticamente:
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts\executar_notebook_databricks.ps1 -Nb 03_bronze -Tag bronze1
@@ -49,7 +85,7 @@ Cada execução grava o log em `data\_log_<Tag>.txt` e o resultado em `data\_res
 
 ## Job mensal (Lakeflow Jobs)
 
-O pipeline inteiro roda como um Job serverless chamado **`ANTT Lakehouse - mensal`** (`job_id` 193583361732032), definido em `scripts/job_antt_lakehouse.json`. São 13 tarefas de notebook que cobrem ingestão → bronze → silver → gold → verificações. Agenda ativa (UNPAUSED): dia 5 de cada mês às 06:00 (`America/Sao_Paulo`, cron Quartz `0 0 6 5 * ?`). As tarefas passam `catalog=workspace`; os demais widgets (`data_inicio`, `data_fim`) usam os padrões dos notebooks. Só há agendamento mensal — não há gatilho por chegada de arquivo (file arrival).
+O pipeline inteiro roda como um Job serverless chamado **`ANTT Lakehouse - mensal`** (no ambiente do autor o `job_id` é 193583361732032; na sua conta será outro, impresso pelo `criar_job.ps1`), definido em `scripts/job_antt_lakehouse.json`. São 13 tarefas de notebook que cobrem ingestão → bronze → silver → gold → verificações. Agenda ativa (UNPAUSED): dia 5 de cada mês às 06:00 (`America/Sao_Paulo`, cron Quartz `0 0 6 5 * ?`). As tarefas passam `catalog=workspace`; os demais widgets (`data_inicio`, `data_fim`) usam os padrões dos notebooks. Só há agendamento mensal — não há gatilho por chegada de arquivo (file arrival).
 
 Dependências entre tarefas (as três silver de base rodam em paralelo; as três silver de fato também):
 
@@ -70,16 +106,18 @@ Criar ou atualizar o job (idempotente: procura pelo nome e usa `jobs reset` se j
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts\criar_job.ps1
 ```
 
-Rodar uma vez, fora da agenda: `databricks jobs run-now 193583361732032 --profile antt` (a CLI fica em `$env:LOCALAPPDATA\databricks-cli\databricks.exe`). O job usa os notebooks já importados em `/Users/uilian.senna@gmail.com/antt-lakehouse/`; depois de alterar um notebook local, importe-o antes com os scripts abaixo.
+Rodar uma vez, fora da agenda: `databricks jobs run-now <job_id> --profile antt`, usando o `job_id` impresso pelo `criar_job.ps1`. O job usa os notebooks já importados em `/Users/<seu-usuario>/antt-lakehouse/` (o `criar_job.ps1` resolve esse caminho automaticamente a partir do seu usuário logado); depois de alterar um notebook local, importe-o antes com os scripts abaixo.
 
 Scripts de importação e execução avulsa (`scripts/`):
+
+Todos aceitam `-Perfil <nome>` (padrão `antt`) e `-PastaWs <caminho>` (opcional; se vazio, descobrem `/Users/<voce>/antt-lakehouse` pelo usuário logado). A descoberta de raiz do projeto, CLI e usuário fica no helper `_comum.ps1`.
 
 | Script | Uso |
 |---|---|
 | `importar_notebooks.ps1` | Importa todos os notebooks de `notebooks/` para o workspace |
 | `importar_um_notebook.ps1 -Arquivo <nome.py>` | Importa um notebook (a conferência de conteúdo no fim é específica do `08_analise.sql`) |
 | `executar_notebook_databricks.ps1` | Importa e executa um notebook em run avulsa serverless (`jobs submit`) |
-| `criar_job.ps1` | Cria/atualiza o Job mensal |
+| `criar_job.ps1` | Cria/atualiza o Job mensal (resolve `__WS_BASE__` para o seu usuário) |
 
 ## Estrutura
 

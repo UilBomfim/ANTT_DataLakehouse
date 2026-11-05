@@ -1,4 +1,4 @@
-{
+﻿{
   "name": "ANTT Lakehouse - mensal",
   "max_concurrent_runs": 1,
   "tags": {
@@ -14,7 +14,7 @@
     {
       "task_key": "ingest_download",
       "notebook_task": {
-        "notebook_path": "/Users/uilian.senna@gmail.com/antt-lakehouse/02_ingest_download",
+        "notebook_path": "__WS_BASE__/02_ingest_download",
         "source": "WORKSPACE",
         "base_parameters": { "catalog": "workspace" }
       }
@@ -23,7 +23,7 @@
       "task_key": "bronze",
       "depends_on": [ { "task_key": "ingest_download" } ],
       "notebook_task": {
-        "notebook_path": "/Users/uilian.senna@gmail.com/antt-lakehouse/03_bronze",
+        "notebook_path": "__WS_BASE__/03_bronze",
         "source": "WORKSPACE",
         "base_parameters": { "catalog": "workspace" }
       }
@@ -32,7 +32,7 @@
       "task_key": "silver_cobertura",
       "depends_on": [ { "task_key": "bronze" } ],
       "notebook_task": {
-        "notebook_path": "/Users/uilian.senna@gmail.com/antt-lakehouse/04_silver_cobertura",
+        "notebook_path": "__WS_BASE__/04_silver_cobertura",
         "source": "WORKSPACE",
         "base_parameters": { "catalog": "workspace" }
       }
@@ -41,7 +41,7 @@
       "task_key": "silver_empresas",
       "depends_on": [ { "task_key": "bronze" } ],
       "notebook_task": {
-        "notebook_path": "/Users/uilian.senna@gmail.com/antt-lakehouse/04_silver_empresas",
+        "notebook_path": "__WS_BASE__/04_silver_empresas",
         "source": "WORKSPACE",
         "base_parameters": { "catalog": "workspace" }
       }
@@ -50,7 +50,7 @@
       "task_key": "silver_licencas",
       "depends_on": [ { "task_key": "bronze" } ],
       "notebook_task": {
-        "notebook_path": "/Users/uilian.senna@gmail.com/antt-lakehouse/04_silver_licencas",
+        "notebook_path": "__WS_BASE__/04_silver_licencas",
         "source": "WORKSPACE",
         "base_parameters": { "catalog": "workspace" }
       }
@@ -63,7 +63,7 @@
         { "task_key": "silver_licencas" }
       ],
       "notebook_task": {
-        "notebook_path": "/Users/uilian.senna@gmail.com/antt-lakehouse/04_silver_viagens",
+        "notebook_path": "__WS_BASE__/04_silver_viagens",
         "source": "WORKSPACE",
         "base_parameters": { "catalog": "workspace" }
       }
@@ -76,7 +76,7 @@
         { "task_key": "silver_licencas" }
       ],
       "notebook_task": {
-        "notebook_path": "/Users/uilian.senna@gmail.com/antt-lakehouse/04_silver_paradas",
+        "notebook_path": "__WS_BASE__/04_silver_paradas",
         "source": "WORKSPACE",
         "base_parameters": { "catalog": "workspace" }
       }
@@ -89,7 +89,7 @@
         { "task_key": "silver_licencas" }
       ],
       "notebook_task": {
-        "notebook_path": "/Users/uilian.senna@gmail.com/antt-lakehouse/04_silver_bilhetes",
+        "notebook_path": "__WS_BASE__/04_silver_bilhetes",
         "source": "WORKSPACE",
         "base_parameters": { "catalog": "workspace" }
       }
@@ -102,7 +102,7 @@
         { "task_key": "silver_bilhetes" }
       ],
       "notebook_task": {
-        "notebook_path": "/Users/uilian.senna@gmail.com/antt-lakehouse/04_silver_dq",
+        "notebook_path": "__WS_BASE__/04_silver_dq",
         "source": "WORKSPACE",
         "base_parameters": { "catalog": "workspace" }
       }
@@ -111,7 +111,7 @@
       "task_key": "gold_run_all",
       "depends_on": [ { "task_key": "silver_dq" } ],
       "notebook_task": {
-        "notebook_path": "/Users/uilian.senna@gmail.com/antt-lakehouse/05_gold_run_all",
+        "notebook_path": "__WS_BASE__/05_gold_run_all",
         "source": "WORKSPACE"
       }
     },
@@ -119,7 +119,7 @@
       "task_key": "gold_indicadores_run_all",
       "depends_on": [ { "task_key": "gold_run_all" } ],
       "notebook_task": {
-        "notebook_path": "/Users/uilian.senna@gmail.com/antt-lakehouse/06_gold_run_all",
+        "notebook_path": "__WS_BASE__/06_gold_run_all",
         "source": "WORKSPACE"
       }
     },
@@ -127,7 +127,7 @@
       "task_key": "verificacao_gold",
       "depends_on": [ { "task_key": "gold_indicadores_run_all" } ],
       "notebook_task": {
-        "notebook_path": "/Users/uilian.senna@gmail.com/antt-lakehouse/95_verificacao_gold",
+        "notebook_path": "__WS_BASE__/95_verificacao_gold",
         "source": "WORKSPACE",
         "base_parameters": { "catalog": "workspace" }
       }
@@ -136,7 +136,7 @@
       "task_key": "verificacao_gold_agg",
       "depends_on": [ { "task_key": "gold_indicadores_run_all" } ],
       "notebook_task": {
-        "notebook_path": "/Users/uilian.senna@gmail.com/antt-lakehouse/95_verificacao_gold_agg",
+        "notebook_path": "__WS_BASE__/95_verificacao_gold_agg",
         "source": "WORKSPACE",
         "base_parameters": { "catalog": "workspace" }
       }
