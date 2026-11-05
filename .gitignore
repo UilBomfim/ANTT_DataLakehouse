@@ -5,6 +5,9 @@ data/
 *.tmp
 *.log
 
+# Scripts auxiliares temporarios
+scripts/_*.ps1
+
 # SO / editor
 Thumbs.db
 .DS_Store
